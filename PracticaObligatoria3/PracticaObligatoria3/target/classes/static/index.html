@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<script>
+    var stompClient = null;
+
+    function connect() {
+        var socket = new SockJS('/chat.addUser');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function(frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/public', function(message) {
+                showMessage(JSON.parse(message.body));
+            });
+        });
+    }
+
+    function sendMessage() {
+        var message = {
+            from: document.getElementById('username').value,
+            text: document.getElementById('message').value
+        };
+        stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(message));
+    }
+
+    function showMessage(message) {
+        var messageArea = document.getElementById('messageArea');
+        var messageElement = document.createElement('li');
+        messageElement.textContent = message.from + ": " + message.text;
+        messageArea.appendChild(messageElement);
+    }
+
+    function disconnect() {
+        // Lógica para enviar un mensaje de desconexión al servidor WebSocket
+        const message = {
+            from: document.getElementById('username').value
+        };
+        stompClient.send('/app/chat.disconnect', {}, JSON.stringify(message));
+        stompClient.disconnect(); // Desconectar el cliente WebSocket
+        console.log("Desconectado");
+    }
+</script>
+
+<div>
+    <input type="text" id="username" placeholder="Username">
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Desconectar</button>
+</div>
+
+<div>
+    <ul id="messageArea"></ul>
+    <input type="text" id="message" placeholder="Message">
+    <button onclick="sendMessage()">Send</button>
+</div>
+</body>
+</html>
